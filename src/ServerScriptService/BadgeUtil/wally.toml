@@ -1,0 +1,12 @@
+[package]
+name = "mariochao/badge-util"
+description = "Simple module for badge operations with cache and error handling."
+
+version = "0.0.0"
+license = "MIT"
+authors = ["Mario Chao"]
+realm = "server"
+registry = "https://github.com/UpliftGames/wally-index"
+repository = "https://github.com/MarioChao/badge-util"
+
+[dependencies]
