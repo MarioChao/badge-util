@@ -44,7 +44,7 @@ function BadgeUtil.awardBadgeLoop(player: Player, badgeId: number, badgeName: st
 	local checkResult
 
 	repeat
-		checkResult = CachedBadgeCheck.checkUserHasBadge(player.UserId, badgeId)
+		checkResult = CachedBadgeCheck.checkUserHasSingleBadge(player.UserId, badgeId)
 		task.wait(Constants.awardLoopDelay)
 	until checkResult ~= nil
 
@@ -53,6 +53,7 @@ function BadgeUtil.awardBadgeLoop(player: Player, badgeId: number, badgeName: st
 			awardResult = BadgeAward.resolveAwardBadge(player, badgeId, badgeName)
 			task.wait(Constants.awardLoopDelay)
 		until awardResult
+		CachedBadgeCheck.setUserHasBadge(player.UserId, badgeId, true)
 	else
 		if RunService:IsStudio() then
 			print("[Badge Util]: Player already owned badge!")

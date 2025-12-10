@@ -5,12 +5,12 @@
 
 ---------- Imports ----------
 
-local BadgeCheckHelper = require(script:WaitForChild("BadgeCheckRaw"))
+local BadgeCheckRaw = require(script:WaitForChild("BadgeCheckRaw"))
 
 
 ---------- Types ----------
 
-type CacheStatus = {
+type CacheEntryStatus = {
 	cachedTime_seconds: number,
 	expire_seconds: number,
 	timeFunc: () -> number,
@@ -18,7 +18,7 @@ type CacheStatus = {
 
 type BadgeFetchInfo = {
 	fetchStatus: boolean,
-	cacheStatus: CacheStatus,
+	cacheEntryStatus: CacheEntryStatus,
 }
 
 
@@ -38,38 +38,40 @@ Globals.userBadgeFetchInfos = {} :: {[number]: {[number]: BadgeFetchInfo}}
 
 ---------- Local functions ----------
 
-local isCacheExpired
-local createCache
+local getIsCacheEntryExpired
+local createCacheEntry
 local createFetchInfo
 local cleanUpFetches
 local startCleanUp
+local getOrCreateUserCache
 local getCached
 local fetchAndCache
-local userHasBadges
+local setUserHasBadge
+local checkUserHasBadges
 
 
------ Cache functions -----
+----- Cache entry functions -----
 
-isCacheExpired = function(cache: CacheStatus)
-	local expireTime = cache.cachedTime_seconds + cache.expire_seconds
-	return cache.timeFunc() > expireTime
+getIsCacheEntryExpired = function(cacheEntry: CacheEntryStatus)
+	local expireTime = cacheEntry.cachedTime_seconds + cacheEntry.expire_seconds
+	return cacheEntry.timeFunc() > expireTime
 end
 
-createCache = function(expire_seconds: number, timeFunc: (() -> number)?)
+createCacheEntry = function(expire_seconds: number, timeFunc: (() -> number)?)
 	local realTimeFunc = timeFunc or time
 
-	local newCache: CacheStatus = {
+	local newCacheEntry: CacheEntryStatus = {
 		cachedTime_seconds = realTimeFunc(),
 		expire_seconds = expire_seconds,
 		timeFunc = realTimeFunc,
 	}
-	return newCache
+	return newCacheEntry
 end
 
 createFetchInfo = function(fetchStatus: boolean, expire_seconds: number)
 	local newFetchInfo: BadgeFetchInfo = {
 		fetchStatus = fetchStatus,
-		cacheStatus = createCache(expire_seconds),
+		cacheEntryStatus = createCacheEntry(expire_seconds),
 	}
 	return newFetchInfo
 end
@@ -81,7 +83,7 @@ cleanUpFetches = function()
 	for userId, fetchInfos in Globals.userBadgeFetchInfos do
 		-- Clear expired badge results
 		for badgeId, fetchInfo in fetchInfos do
-			if isCacheExpired(fetchInfo.cacheStatus) then
+			if getIsCacheEntryExpired(fetchInfo.cacheEntryStatus) then
 				fetchInfos[badgeId] = nil
 			end
 		end
@@ -103,12 +105,27 @@ end
 
 ----- Badge cache -----
 
+getOrCreateUserCache = function(userId: number)
+	local result = Globals.userBadgeFetchInfos[userId] or (function()
+		local result = {} :: {[number]: BadgeFetchInfo}
+		Globals.userBadgeFetchInfos[userId] = result
+		return result
+	end)()
+	return result
+end
+
+--[[
+Gets the cached badge checking result for a <code>Player</code> and a badge.
+
+@return (boolean) Whether the badge check is cached and not expired.
+@return (boolean?) If cached, whether the <code>Player</code> owns the badge.
+]]
 getCached = function(userId: number, badgeId: number): (boolean, boolean?)
 	-- Check cache table
 	local badgeFetchInfos = Globals.userBadgeFetchInfos[userId]
 	local fetchInfo = badgeFetchInfos and badgeFetchInfos[badgeId]
 	local isFetchValid = (
-		fetchInfo and not isCacheExpired(fetchInfo.cacheStatus)
+		fetchInfo and not getIsCacheEntryExpired(fetchInfo.cacheEntryStatus)
 	)
 
 	-- Return result
@@ -118,24 +135,38 @@ getCached = function(userId: number, badgeId: number): (boolean, boolean?)
 	return false
 end
 
+--[[
+Performs badge checks using Roblox api, then cache the results.
+
+@return ({[number]: boolean?}) Dictionary mapping badge ids to whether the <code>Player</code> owns the badge. <code>nil</code> if the badge check fails.
+]]
 fetchAndCache = function(userId: number, badgeIds: {number})
 	-- Do a new fetch
-	local fetchStatuses = BadgeCheckHelper.userHasBadges(userId, badgeIds)
+	local fetchStatuses = BadgeCheckRaw.userHasBadges(userId, badgeIds)
 
-	-- Initialize player's cache
-	local badgeFetchInfos = Globals.userBadgeFetchInfos[userId]
-	if not badgeFetchInfos then
-		badgeFetchInfos = {} :: {[number]: BadgeFetchInfo}
-		Globals.userBadgeFetchInfos[userId] = badgeFetchInfos
-	end
+	-- Get player's cache
+	local badgeFetchInfos = getOrCreateUserCache(userId)
 
 	-- Cache successful results
 	for badgeId, result in fetchStatuses do
-		badgeFetchInfos[badgeId] = createFetchInfo(result, Constants._expire_seconds)
+		if result then
+			badgeFetchInfos[badgeId] = createFetchInfo(result, Constants._expire_seconds)
+		end
 	end
 
 	-- Return result
 	return fetchStatuses
+end
+
+--[[
+Updates and caches a known badge result for a <code>Player</code> and a badge.
+]]
+setUserHasBadge = function(userId: number, badgeId: number, hasBadge: boolean)
+	-- Get player's cache
+	local badgeFetchInfos = getOrCreateUserCache(userId)
+
+	-- Cache
+	badgeFetchInfos[badgeId] = createFetchInfo(hasBadge, Constants._expire_seconds)
 end
 
 
@@ -147,7 +178,7 @@ Checks if the <code>Player</code> owns multiple badges.
 @return ({number: boolean?}) Dictionary mapping badge ids to whether the <code>Player</code> owns the badge. <code>nil</code> if the badge check fails.
 ]]
 
-userHasBadges = function(userId: number, badgeIds: {number}): BadgeCheckHelper.BadgeCheckResult
+checkUserHasBadges = function(userId: number, badgeIds: {number}): BadgeCheckRaw.BadgeCheckResult
 	-- Sanitize input
 	userId = tonumber(userId) :: number
 	if not userId then
@@ -155,7 +186,7 @@ userHasBadges = function(userId: number, badgeIds: {number}): BadgeCheckHelper.B
 	end
 
 	-- Initialize result
-	local checkResult: BadgeCheckHelper.BadgeCheckResult = {}
+	local checkResult: BadgeCheckRaw.BadgeCheckResult = {}
 
 	-- Get uncached badge ids
 	local uncachedBadgeIds: {number} = {}
@@ -191,19 +222,26 @@ task.defer(startCleanUp)
 
 ---------- Module ----------
 
-local CachedBadgeCheck = {}
+local Module = {}
 
 
 ----- Module fields -----
 
-CachedBadgeCheck.userHasBadges = userHasBadges
+Module.setUserHasBadge = setUserHasBadge
 
-function CachedBadgeCheck.checkUserHasBadge(userId: number, badgeId: number)
-	return CachedBadgeCheck.userHasBadges(userId, {badgeId})[badgeId]
+Module.checkUserHasBadges = checkUserHasBadges
+
+--[[
+Checks if the <code>Player</code> owns a single badge.
+
+@return (boolean) <code>true</code> if the <code>Player</code> owns the badge; <code>false</code> if the <code>Player</code> doesn't own the badge; <code>nil</code> if the badge check fails.
+]]
+function Module.checkUserHasSingleBadge(userId: number, badgeId: number)
+	return Module.checkUserHasBadges(userId, {badgeId})[badgeId]
 end
 
 
 ---------- Return module ----------
 
-table.freeze(CachedBadgeCheck)
-return CachedBadgeCheck
+table.freeze(Module)
+return Module

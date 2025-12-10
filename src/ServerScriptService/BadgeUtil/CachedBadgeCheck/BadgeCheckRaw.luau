@@ -10,13 +10,14 @@ local BadgeService = game:GetService("BadgeService")
 
 ---------- Types ----------
 
-export type BadgeCheckResult = {[number]: boolean}
+export type BadgeCheckResult = {[number]: boolean?}
 
 
 ---------- Constants ----------
 
 local Constants = {}
 Constants._badgeBatchSize = 10
+Constants._batchCheckThreshold = 5
 
 table.freeze(Constants)
 
@@ -78,7 +79,7 @@ userHasBadges_badgeService = function(userId: number, badgeIds: {number}): Badge
 	end
 
 	-- A few badge ids
-	if #badgeIds <= Constants._badgeBatchSize // 2 then
+	if #badgeIds <= Constants._batchCheckThreshold then
 		return userHasBadges_badgeService_singleChecks(userId, badgeIds)
 	end
 

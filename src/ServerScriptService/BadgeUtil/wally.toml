@@ -2,7 +2,7 @@
 name = "mariochao/badge-util"
 description = "Simple module for badge operations with cache and error handling."
 
-version = "0.0.0"
+version = "0.0.1"
 license = "MIT"
 authors = ["Mario Chao"]
 realm = "server"
