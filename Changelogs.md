@@ -1,6 +1,6 @@
 # Changelogs
 
-## [v0.0.1] Update cache on award + api update | 2025/12/09
+## [v0.0.1] Update cache on award + Api update | 2025/12/09
 
 When calling `BadgeUtil.awardBadgeLoop`, the badge checking cache is automatically updated upon badge award.
 
