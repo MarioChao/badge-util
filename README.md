@@ -2,7 +2,7 @@
 
 Simple module for badge operations with cache and error handling.
 
-This is a Server module, meaning it should be placed in `ServerScriptService`.
+This is a Shared module, meaning it can be placed in `ReplicatedStorage`.
 
 Module functions:
 
@@ -10,6 +10,11 @@ Module functions:
   * `BadgeUtil.awardBadgeLoop(player, badgeId, badgeName)`
   * Checks if the `Player` doesn't own the badge already, then repeatedly awards the badge until success.
   * Automatically updates the badge checking cache upon badge award.
+
+* `BadgeInfo.getBadgeInfo`
+  * `BadgeUtil.BadgeInfo.getBadgeInfo(badgeId)`
+  * Retrieves information about a badge.
+  * Returns a `table` containing badge info; `nil` if failed.
 
 * `CachedBadgeCheck.checkUserHasBadges`
   * `BadgeUtil.CachedBadgeCheck.checkUserHasBadges(userId, badgeIds)`

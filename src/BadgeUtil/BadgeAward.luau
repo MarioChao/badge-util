@@ -9,33 +9,35 @@ local BadgeService = game:GetService("BadgeService")
 local RunService = game:GetService("RunService")
 
 
----------- Types ----------
+---------- Imports ----------
 
-type BadgeInfo = {
-	Name: string,
-	Description: string,
-	IconImageId: number,
-	IsEnabled: boolean
-}
+local BadgeInfo = require(script.Parent:WaitForChild("BadgeInfo"))
 
 
----------- Global variables ----------
+---------- Constants ----------
+
+local Constants = {}
+Constants.userIdThrottleTime = 2
+
+table.freeze(Constants)
+
+
+---------- Globals ----------
 
 local Globals = {}
-Globals.userIdThrottleTable = {} :: {[number]: boolean}
+Globals.userId_throttled = {} :: {[number]: true?}
 
 
 ---------- Local functions ----------
 
 local throttle
-local getBadgeInfo
 local awardBadge
 local resolveAwardBadge
 
 
 ----- Throttle helper -----
 
-throttle = function<K>(sourceTable: {[K]: boolean}, key: K, delay_seconds: number): boolean
+throttle = function<K>(sourceTable: {[K]: boolean?}, key: K, delay_seconds: number): boolean
 	-- Check if throttled
 	if sourceTable[key] then
 		return false
@@ -52,23 +54,10 @@ end
 
 ----- Badge api functions -----
 
-getBadgeInfo = function(badgeId: number): BadgeInfo?
-	-- Get info in protected call
-	local success, result = pcall(function()
-		return BadgeService:GetBadgeInfoAsync(badgeId)
-	end)
-
-	-- Return result
-	if not success then
-		return nil
-	end
-	return result
-end
-
 awardBadge = function(player: Player, badgeId: number): boolean
 	-- Award badge in protected call
 	local success, result = pcall(function()
-		return BadgeService:AwardBadge(player.UserId, badgeId)
+		return BadgeService:AwardBadgeAsync(player.UserId, badgeId)
 	end)
 
 	-- Validate sucess
@@ -86,15 +75,20 @@ end
 --[[
 @return (boolean) Whether the badge was awarded to the player.
 ]]
-
 resolveAwardBadge = function(player: Player, badgeId: number, badgeName: string)
+	-- Validate server environment
+	if not RunService:IsServer() then
+		warn("[Badge Award]: Sorry, badges can only be awarded from the server!")
+		return false
+	end
+
 	-- Throttle check
-	if not throttle(Globals.userIdThrottleTable, player.UserId, 3) then
+	if not throttle(Globals.userId_throttled, player.UserId, Constants.userIdThrottleTime) then
 		return false
 	end
 
 	-- Validate badge
-	local badgeInfo = getBadgeInfo(badgeId)
+	local badgeInfo = BadgeInfo.getBadgeInfo(badgeId)
 	if not (badgeInfo and badgeInfo.IsEnabled) then
 		warn(`[Badge Award]: Badge {badgeId}: '{badgeName}' not available!`)
 		return false
@@ -116,15 +110,15 @@ end
 
 ---------- Module ----------
 
-local BadgeAward = {}
+local Module = {}
 
 
 ----- Module fields -----
 
-BadgeAward.resolveAwardBadge = resolveAwardBadge
+Module.resolveAwardBadge = resolveAwardBadge
 
 
 ---------- Return module ----------
 
-table.freeze(BadgeAward)
-return BadgeAward
+table.freeze(Module)
+return Module

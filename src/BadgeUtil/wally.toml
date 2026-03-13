@@ -2,10 +2,10 @@
 name = "mariochao/badge-util"
 description = "Simple module for badge operations with cache and error handling."
 
-version = "0.0.1"
+version = "0.0.2"
 license = "MIT"
 authors = ["Mario Chao"]
-realm = "server"
+realm = "shared"
 registry = "https://github.com/UpliftGames/wally-index"
 repository = "https://github.com/MarioChao/badge-util"
 

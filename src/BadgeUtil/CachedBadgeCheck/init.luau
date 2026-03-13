@@ -41,12 +41,15 @@ Globals.userBadgeFetchInfos = {} :: {[number]: {[number]: BadgeFetchInfo}}
 local getIsCacheEntryExpired
 local createCacheEntry
 local createFetchInfo
+
 local cleanUpFetches
 local startCleanUp
+
 local getOrCreateUserCache
 local getCached
 local fetchAndCache
 local setUserHasBadge
+
 local checkUserHasBadges
 
 
@@ -177,7 +180,6 @@ Checks if the <code>Player</code> owns multiple badges.
 
 @return ({number: boolean?}) Dictionary mapping badge ids to whether the <code>Player</code> owns the badge. <code>nil</code> if the badge check fails.
 ]]
-
 checkUserHasBadges = function(userId: number, badgeIds: {number}): BadgeCheckRaw.BadgeCheckResult
 	-- Sanitize input
 	userId = tonumber(userId) :: number

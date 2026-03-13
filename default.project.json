@@ -3,13 +3,13 @@
   "tree": {
     "$className": "DataModel",
 
-    "ServerScriptService": {
+    "ReplicatedStorage": {
       "Modules": {
         "$className": "Folder",
         "$ignoreUnknownInstances": true,
 
         "BadgeUtil": {
-          "$path": "src/ServerScriptService/BadgeUtil"
+          "$path": "src/BadgeUtil"
         }
       }
     }
