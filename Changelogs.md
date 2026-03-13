@@ -12,6 +12,8 @@ Migrated `BadgeService:AwardBadge()` to `:AwardBadgeAsync()`.
 
 Added throttle check for `BadgeUtil.awardBadgeLoop()` when called on the same user id & badge id.
 
+Decreased throttle for badge awarding per player from 3 seconds to 2 seconds.
+
 ## [v0.0.1] Update cache on award + Api update | 2025/12/09
 
 When calling `BadgeUtil.awardBadgeLoop`, the badge checking cache is automatically updated upon badge award.
